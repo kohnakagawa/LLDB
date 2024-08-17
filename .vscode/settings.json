@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "/Applications/Xcode.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/Resources/Python"
+    ]
+}
