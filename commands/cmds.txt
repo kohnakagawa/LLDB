@@ -1,5 +1,10 @@
 settings set target.skip-prologue false
 settings set target.x86-disassembly-flavor intel
+
 command alias reload_script command source ~/.lldbinit
+
 command regex p_boxed_array 's/(.+)/expr -l Swift -- protocol Empty {}; unsafeBitCast(%1, to: [any Empty].self)/'
 command regex po_boxed_array 's/(.+)/expr -O -l Swift -- protocol Empty {}; unsafeBitCast(%1, to: [any Empty].self)/'
+command regex dump_boxed_array 's/(.+)/expr -l Swift -- protocol Empty {}; dump(unsafeBitCast(%1, to: [any Empty].self))/'
+
+command regex sdump 's/(.+)/dwim-print -l Swift -- dump(unsafeBitCast(%1, to: AnyObject.self))/'
