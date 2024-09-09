@@ -1,6 +1,9 @@
+# Modified from https://github.com/kodecocodes/dbg-materials/blob/e8a1f1d0a40c6d45da866ab2e414e947896675e8/Appendix-C-helpful-code/LLDB/lldb_commands/generate_new_script.py
+# - Add Python type annotations
+
 # MIT License
 
-# Copyright (c) 2018 Derek Selander
+# Copyright (c) 2017 Derek Selander
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,12 +29,12 @@ import optparse
 import shlex
 from stat import *
 
-def __lldb_init_module(debugger, internal_dict):
+def __lldb_init_module(debugger: lldb.SBDebugger, internal_dict: dict):
     debugger.HandleCommand(
-        'command script add -f generate_new_script.generate_new_script __generate_script')
+        'command script add -f generate_new_script.generate_new_script __generate_script -h "generates new LLDB script"')
 
 
-def generate_new_script(debugger, command, result, internal_dict):
+def generate_new_script(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionContext, result: lldb.SBCommandReturnObject, internal_dict: dict):
     '''
     Generates a new script in the same directory as this file.
     Can generate function styled scripts or class styled scripts.
@@ -43,7 +46,7 @@ def generate_new_script(debugger, command, result, internal_dict):
     '''
 
     command_args = shlex.split(command, posix=False)
-    parser = generateOptionParser()
+    parser = generate_option_parser()
     try:
         (options, args) = parser.parse_args(command_args)
     except:
@@ -86,16 +89,16 @@ def __lldb_init_module(debugger, internal_dict):
 
 class LLDBCustomCommand:
 
-    def __init__(self, debugger, session_dict):
+    def __init__(self, debugger: lldb.SBDebugger, session_dict: dict):
         # This is where you setup properties for the class
         pass
 
-    def __call__(self, debugger, command, exe_ctx, result): 
+    def __call__(self, debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionContext, result: lldb.SBCommandReturnObject): 
         # This is where you handle the command
 
         command_args = shlex.split(command, posix=False)
 
-        parser = self.generateOptionParser()
+        parser = self.generate_option_parser()
         try:
             (options, args) = parser.parse_args(command_args)
         except:
@@ -106,8 +109,7 @@ class LLDBCustomCommand:
         # clean_command = shlex.split(args[0])[0]
         result.AppendMessage('Hello! the ''' + resolved_name + r''' command is working!')
 
-
-    def generateOptionParser(self):
+    def generate_option_parser(self):
         usage = "usage: %prog [options] path/to/item"
         parser = optparse.OptionParser(usage=usage, prog="''' + resolved_name + r'''")
         parser.add_option("-m", "--module",
@@ -140,20 +142,22 @@ import os
 import shlex
 import optparse
 
-def __lldb_init_module(debugger, internal_dict):
+
+def __lldb_init_module(debugger: lldb.SBDebugger, internal_dict: dict):
     debugger.HandleCommand(
     '''
-    script += '\'command script add -f {}.handle_command {}\')'.format(filename, resolved_name)
+    script += '\'command script add -f {}.handle_command {} -h "{}"\')'.format(filename, resolved_name, "Short documentation here")
     script += r'''
 
-def handle_command(debugger, command, result, internal_dict):
+
+def handle_command(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionContext, result: lldb.SBCommandReturnObject, internal_dict: dict):
     ''' 
     script += "\'\'\'\n    Documentation for how to use " + resolved_name + " goes here \n    \'\'\'"
     
     script += r'''
 
     command_args = shlex.split(command, posix=False)
-    parser = generateOptionParser()
+    parser = generate_option_parser()
     try:
         (options, args) = parser.parse_args(command_args)
     except:
@@ -164,11 +168,11 @@ def handle_command(debugger, command, result, internal_dict):
     # clean_command = shlex.split(args[0])[0]
     '''
 
-    script += "result.AppendMessage('Hello! The " + resolved_name + " command is working!')"
+    script += "result.AppendMessage('Hello! the " + resolved_name + " command is working!')"
     script += r'''
 
 
-def generateOptionParser():
+def generate_option_parser():
     usage = "usage: %prog [options] TODO Description Here :]"
     parser = optparse.OptionParser(usage=usage, prog="''' + resolved_name + r'''")
     parser.add_option("-m", "--module",
@@ -193,7 +197,7 @@ def create_or_touch_filepath(filepath, script):
     os.chmod(filepath, st.st_mode | S_IEXEC)
     file.close()
 
-def generateOptionParser():
+def generate_option_parser():
     usage = "usage: %prog [options] nameofscript"
     parser = optparse.OptionParser(usage=usage, prog="__generate_script")
 
