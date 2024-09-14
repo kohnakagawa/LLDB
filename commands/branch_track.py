@@ -52,6 +52,7 @@ def set_bps(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionCo
 
 
 def generate_option_parser():
+    # TODO: implement module option
     usage = "usage: %prog [options] TODO Description Here :]"
     parser = optparse.OptionParser(usage=usage, prog="branch_track")
     parser.add_option("-m", "--module",
@@ -59,11 +60,6 @@ def generate_option_parser():
                       default=None,
                       dest="module",
                       help="This is a placeholder option to show you how to use options with strings")
-    parser.add_option("-c", "--check_if_true",
-                      action="store_true",
-                      default=False,
-                      dest="store_true",
-                      help="This is a placeholder option to show you how to use options with bools")
     return parser
     
 
