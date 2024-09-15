@@ -5,29 +5,46 @@ import optparse
 import json
 import subprocess
 from dataclasses import dataclass, asdict
-from typing import Dict
+from typing import Dict, List
 
 
+FILE_NAME = os.path.basename(__file__)[:-3]
 branch_data = []
 
 
 def __lldb_init_module(debugger: lldb.SBDebugger, internal_dict: dict):
-    debugger.HandleCommand('command script add -f branch_track.set_bps set_bps -h "track branches"')
-    debugger.HandleCommand('command script add -f branch_track.save_branch save_branch -h "save tracked branches"')
+    debugger.HandleCommand(f'command script add -f {FILE_NAME}.set_bps set_bps -h "track branches"')
+    debugger.HandleCommand(f'command script add -f {FILE_NAME}.save_branch save_branch -h "save tracked branches"')
+
+
+def get_all_modules(debugger: lldb.SBDebugger) -> List[dict]:
+    target: lldb.SBTarget = debugger.GetSelectedTarget()
+    all_modules = []
+    for i in range(target.GetNumModules()):
+        module: lldb.SBModule = target.GetModuleAtIndex(i)
+        addr = hex(module.GetObjectFileHeaderAddress().GetLoadAddress(target))
+        name = module.GetFileSpec().GetFilename()
+        all_modules.append({"name": name, "addr": addr})
+    return all_modules
 
 
 def save_branch(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionContext, result: lldb.SBCommandReturnObject, internal_dict: dict):
     global branch_data
     file_name = "/tmp/branch_data.json"
+    result = {
+        "modules": get_all_modules(debugger),
+        "branches": branch_data
+    }
     with open(file_name, 'w') as f:
-        json.dump(branch_data, f, indent=2)
+        json.dump(result, f, indent=2)
     print(f"Branch data saved to {file_name}")
     branch_data = []
+    print("Saved data is cleared")
 
 
 def set_bps(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionContext, result: lldb.SBCommandReturnObject, internal_dict: dict):
     '''
-    NOTE: Support only Intel Mac
+    NOTE: Only Intel Mac, only main module
     '''
 
     command_args = shlex.split(command, posix=False)
@@ -45,7 +62,7 @@ def set_bps(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionCo
 
     for address in branch_instruction_addresses.splitlines():
         bp = target.BreakpointCreateByAddress(int(address, 16))
-        bp.SetScriptCallbackFunction("branch_track.break_on_indirect_branch")
+        bp.SetScriptCallbackFunction(f"{FILE_NAME}.break_on_indirect_branch")
     
     print(f"Breakpoints set in main module: {main_module.GetFileSpec().GetFilename()}")
     print(f"Please continue program execution, then save branch data using the \"save_branch\" command")
@@ -54,7 +71,7 @@ def set_bps(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionCo
 def generate_option_parser():
     # TODO: implement module option
     usage = "usage: %prog [options] TODO Description Here :]"
-    parser = optparse.OptionParser(usage=usage, prog="branch_track")
+    parser = optparse.OptionParser(usage=usage, prog=FILE_NAME)
     parser.add_option("-m", "--module",
                       action="store",
                       default=None,
@@ -94,7 +111,7 @@ def get_all_branch_instructions(debugger, image_base):
 class BranchData:
     module: str
     func: str
-    registers: Dict[str, int]
+    registers: Dict[str, str]
 
 
 class CollectIndirectBranchInfo:
@@ -157,5 +174,5 @@ def break_on_indirect_branch(frame: lldb.SBFrame, bp_loc: lldb.SBAddress, dict: 
     thread = frame.GetThread()
     process = thread.GetProcess()
     process.GetTarget().GetDebugger().SetAsync(False)
-    thread.StepUsingScriptedThreadPlan("branch_track.CollectIndirectBranchInfo", False)
+    thread.StepUsingScriptedThreadPlan(f"{FILE_NAME}.CollectIndirectBranchInfo", False)
     return False
