@@ -73,12 +73,16 @@ def get_target_executable(debugger):
 
 def get_all_branch_instructions(debugger, image_base):
     r2_script_path = "/tmp/disas.r2"
+    target_section_names = [
+        "__TEXT.__text",
+    ]
     with open(r2_script_path, "w") as fout:
         fout.write("e asm.lines = false\n")
-        fout.write("e bin.relocs.apply = true\n")
-        fout.write("aaa\n")
-        fout.write("pd $ss > /tmp/disas.asm\n")
-    os.system(f"r2 -i {r2_script_path} -B {hex(image_base)} -q {get_target_executable(debugger)}")
+        fout.write("aaaa\n")
+        for target_section_name in target_section_names:
+            fout.write(f"s $(iS~{target_section_name}~[3])\n")
+            fout.write("pD $SS > /tmp/disas.asm\n")
+    os.system(f"r2 -e bin.relocs.apply=true -i {r2_script_path} -B {hex(image_base)} -q {get_target_executable(debugger)}")
     grep_process = subprocess.Popen(["grep", "-E", "(call|jmp).*(\\[|r\\Sx|e\\Sx)", "/tmp/disas.asm"], stdout=subprocess.PIPE)
     awk_process = subprocess.Popen(["awk", "{print $1}"], stdin=grep_process.stdout, stdout=subprocess.PIPE, text=True)
     branch_instruction_addresses = awk_process.communicate()[0]
