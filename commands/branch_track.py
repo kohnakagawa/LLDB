@@ -101,7 +101,7 @@ def get_all_branch_instructions(debugger, image_base):
             fout.write(f"s $(iS~{target_section_name}~[3])\n")
             fout.write("pD $SS >> /tmp/disas.asm\n")
     os.system(f"r2 -e bin.relocs.apply=true -i {r2_script_path} -B {hex(image_base)} -q {get_target_executable(debugger)}")
-    grep_process = subprocess.Popen(["grep", "-E", "(call|jmp).*(\\[|r\\Sx|e\\Sx)", "/tmp/disas.asm"], stdout=subprocess.PIPE)
+    grep_process = subprocess.Popen(["grep", "-E", "(call|jmp)\\s*\\w*\\s+(\\[|r[a|b|c|d]x|r[s|d]i|r[b|s]p|r\\d|e[a|b|c|d]x|e[s|d]i|e[b|s]p)", "/tmp/disas.asm"], stdout=subprocess.PIPE)
     awk_process = subprocess.Popen(["awk", "{print $1}"], stdin=grep_process.stdout, stdout=subprocess.PIPE, text=True)
     branch_instruction_addresses = awk_process.communicate()[0]
     return branch_instruction_addresses
