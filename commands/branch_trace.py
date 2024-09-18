@@ -13,8 +13,8 @@ branch_data = []
 
 
 def __lldb_init_module(debugger: lldb.SBDebugger, internal_dict: dict):
-    debugger.HandleCommand(f'command script add -f {FILE_NAME}.set_bps set_bps -h "track branches"')
-    debugger.HandleCommand(f'command script add -f {FILE_NAME}.save_branch save_branch -h "save tracked branches"')
+    debugger.HandleCommand(f'command script add -f {FILE_NAME}.set_bps brt_set_bps -h "Trace branches"')
+    debugger.HandleCommand(f'command script add -f {FILE_NAME}.save brt_save -h "Save trace data to /tmp/branches.json"')
 
 
 def get_all_modules(debugger: lldb.SBDebugger) -> List[dict]:
@@ -28,9 +28,9 @@ def get_all_modules(debugger: lldb.SBDebugger) -> List[dict]:
     return all_modules
 
 
-def save_branch(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionContext, result: lldb.SBCommandReturnObject, internal_dict: dict):
+def save(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionContext, result: lldb.SBCommandReturnObject, internal_dict: dict):
     global branch_data
-    file_name = "/tmp/branch_data.json"
+    file_name = "/tmp/branches.json"
     result = {
         "modules": get_all_modules(debugger),
         "branches": branch_data
