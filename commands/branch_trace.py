@@ -13,7 +13,7 @@ branch_data = []
 
 
 def __lldb_init_module(debugger: lldb.SBDebugger, internal_dict: dict):
-    debugger.HandleCommand(f'command script add -f {FILE_NAME}.set_bps brt_set_bps -h "Trace branches"')
+    debugger.HandleCommand(f'command script add -f {FILE_NAME}.set_bps brt_set_bps -h "Set breakpoints to record destination addresses of indirect branches"')
     debugger.HandleCommand(f'command script add -f {FILE_NAME}.save brt_save -h "Save trace data to /tmp/branches.json"')
 
 
@@ -65,7 +65,7 @@ def set_bps(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionCo
         bp.SetScriptCallbackFunction(f"{FILE_NAME}.break_on_indirect_branch")
     
     print(f"Breakpoints set in main module: {main_module.GetFileSpec().GetFilename()}")
-    print(f"Please continue program execution, then save branch data using the \"save_branch\" command")
+    print(f"Please continue program execution, then save branch data using the \"brt_save\" command")
 
 
 def generate_option_parser():

@@ -58,7 +58,7 @@ def break_on_swift_initStackObject(frame: lldb.SBFrame, bp_loc: lldb.SBAddress, 
 
 
 def __lldb_init_module(debugger: lldb.SBDebugger, internal_dict: dict):
-    debugger.HandleCommand(f'command script add -f {FILE_NAME}.set_bps swtt_set_bps -h "Set breakpoints on swift_allocObject and swift_initStackObject"')
+    debugger.HandleCommand(f'command script add -f {FILE_NAME}.set_bps swtt_set_bps -h "Set breakpoints on swift_allocObject and swift_initStackObject to obtain type metadata"')
     debugger.HandleCommand(f'command script add -f {FILE_NAME}.save swtt_save -h "Save the collected trace data to a file"')
 
 
@@ -76,11 +76,6 @@ def get_text_segment_address_range(module: lldb.SBModule, target: lldb.SBTarget)
 
 
 def set_bps(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionContext, result: lldb.SBCommandReturnObject, internal_dict: dict):
-    '''
-    TODO: swift_initStackObject と swift_allocObject の両方にブレークポイントを設定した場合に処理が継続しない問題の調査
-    現状では swift_initStackObject のみにブレークポイントを設定するようにしている
-    '''
-
     command_args = shlex.split(command, posix=False)
     parser = generate_option_parser()
     try:
@@ -94,7 +89,7 @@ def set_bps(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionCo
     bp.SetScriptCallbackFunction(f"{FILE_NAME}.break_on_swift_allocObject")
     bp = target.BreakpointCreateByName("swift_initStackObject")
     bp.SetScriptCallbackFunction(f"{FILE_NAME}.break_on_swift_initStackObject")
-    print("Breakpoints are set. Please continue execution.")
+    print("Breakpoints are set. Please continue execution and run \"swtt_save\" command to save the collected data")
 
     global target_module_addr
     main_module: lldb.SBModule = target.GetModuleAtIndex(0)
