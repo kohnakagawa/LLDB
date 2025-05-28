@@ -108,6 +108,18 @@ Prints the contents of an existential container.
 (lldb) dump_boxed_array <object address>
 ```
 
+### `xpr_yara_dump`
+
+**Summary**
+
+Dumps what YaraMatcher object is initialized with what YARA rule string. This command works only for XProtectRemediator binaries (version 145).
+
+**Usage**
+
+```
+(lldb) xpr_yara_dump
+```
+
 ## Author
 
 Koh M. Nakagawa (@tsunek0h)
