@@ -1,4 +1,5 @@
 import lldb
+import hashlib
 import os
 import shlex
 import optparse
@@ -65,8 +66,8 @@ def set_bps(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionCo
     image_base = main_module.GetObjectFileHeaderAddress().GetLoadAddress(target)
     branch_instruction_addresses = get_all_branch_instructions(debugger, image_base)
 
-    for address in branch_instruction_addresses.splitlines():
-        bp = target.BreakpointCreateByAddress(int(address, 16))
+    for address in branch_instruction_addresses:
+        bp = target.BreakpointCreateByAddress(address)
         bp.SetScriptCallbackFunction(f"{FILE_NAME}.break_on_indirect_branch")
     
     print(f"Breakpoints set in main module: {main_module.GetFileSpec().GetFilename()}")
@@ -93,7 +94,7 @@ def get_target_executable(debugger):
     return full_path
 
 
-def get_all_branch_instructions(debugger, image_base):
+def disassemble(target_path, image_base, disas_file_name):
     r2_script_path = "/tmp/disas.r2"
     target_section_names = [
         "__TEXT.__text",
@@ -101,15 +102,39 @@ def get_all_branch_instructions(debugger, image_base):
     with open(r2_script_path, "w") as fout:
         fout.write("e asm.lines = false\n")
         fout.write("aaaa\n")
-        fout.write("pD 0 > /tmp/disas.asm\n")
+        fout.write(f"pD 0 > {disas_file_name}\n")
         for target_section_name in target_section_names:
             fout.write(f"s $(iS~{target_section_name}~[3])\n")
-            fout.write("pD $SS >> /tmp/disas.asm\n")
-    os.system(f"r2 -e bin.relocs.apply=true -i {r2_script_path} -B {hex(image_base)} -q {get_target_executable(debugger)}")
-    grep_process = subprocess.Popen(["grep", "-E", "(call|jmp)\\s*\\w*\\s+(\\[|r[a|b|c|d]x|r[s|d]i|r[b|s]p|r\\d|e[a|b|c|d]x|e[s|d]i|e[b|s]p)", "/tmp/disas.asm"], stdout=subprocess.PIPE)
-    awk_process = subprocess.Popen(["awk", "{print $1}"], stdin=grep_process.stdout, stdout=subprocess.PIPE, text=True)
-    branch_instruction_addresses = awk_process.communicate()[0]
-    return branch_instruction_addresses
+            fout.write(f"pD $SS >> {disas_file_name}\n")
+    os.system(f"r2 -e bin.relocs.apply=true -i {r2_script_path} -B {hex(image_base)} -q {target_path}")
+
+
+def get_all_branch_instructions(debugger, image_base):
+    target_executable = get_target_executable(debugger)
+    def calculate_sha256(file_path):
+        sha256_hash = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+        sha256_hash.update(image_base.to_bytes(8, byteorder="little"))
+        return sha256_hash.hexdigest()
+    sha256_value = calculate_sha256(target_executable)
+
+    branch_address_cache = f"/tmp/branches_cache_{sha256_value}.json"
+    if os.path.exists(branch_address_cache):
+        print(f"Branch address cache ({branch_address_cache}) found. Skipping r2 analysis")
+        with open(branch_address_cache, "r") as fin:
+            return json.loads(fin.read())
+    else:
+        print(f"Branch address cache ({branch_address_cache}) not found. Start r2 analysis, but it takes a lot of time.")
+        disas_file_name = "/tmp/disas.asm"
+        disassemble(target_executable, image_base, disas_file_name)
+        grep_process = subprocess.Popen(["grep", "-E", "(call|jmp)\\s*\\w*\\s+(\\[|r[a|b|c|d]x|r[s|d]i|r[b|s]p|r\\d|e[a|b|c|d]x|e[s|d]i|e[b|s]p)", disas_file_name], stdout=subprocess.PIPE)
+        awk_process = subprocess.Popen(["awk", "{print $1}"], stdin=grep_process.stdout, stdout=subprocess.PIPE, text=True)
+        branch_addresses = [int(line.strip(), 16) for line in awk_process.communicate()[0].splitlines()]
+        with open(branch_address_cache, "w") as fout:
+            fout.write(json.dumps(branch_addresses))
+        return branch_addresses
 
 
 @dataclass
