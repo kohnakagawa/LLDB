@@ -44,8 +44,14 @@ def save(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionConte
 
 def set_bps(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionContext, result: lldb.SBCommandReturnObject, internal_dict: dict):
     '''
-    NOTE: Only Intel Mac, only main module
+    NOTE: x86_64 only, only main module is supported
     '''
+
+    target: lldb.SBTarget = debugger.GetSelectedTarget()
+    arch = target.GetTriple().split('-')[0]
+    if arch != 'x86_64':
+        print(f"Warning: This command only supports x86_64 architecture. Current architecture is {arch}")
+        return
 
     command_args = shlex.split(command, posix=False)
     parser = generate_option_parser()
@@ -55,7 +61,6 @@ def set_bps(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionCo
         result.SetError(parser.usage)
         return
 
-    target = debugger.GetSelectedTarget()
     main_module: lldb.SBModule = target.GetModuleAtIndex(0)
     image_base = main_module.GetObjectFileHeaderAddress().GetLoadAddress(target)
     branch_instruction_addresses = get_all_branch_instructions(debugger, image_base)
@@ -69,14 +74,14 @@ def set_bps(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionCo
 
 
 def generate_option_parser():
-    # TODO: implement module option
-    usage = "usage: %prog [options] TODO Description Here :]"
+    # TODO: implement module option (not implemented yet)
+    usage = "usage: %prog [options]"
     parser = optparse.OptionParser(usage=usage, prog=FILE_NAME)
     parser.add_option("-m", "--module",
                       action="store",
                       default=None,
                       dest="module",
-                      help="This is a placeholder option to show you how to use options with strings")
+                      help="Module name to set breakpoints")
     return parser
     
 

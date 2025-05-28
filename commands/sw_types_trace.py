@@ -99,13 +99,13 @@ def set_bps(debugger: lldb.SBDebugger, command: str, exe_ctx: lldb.SBExecutionCo
 
 
 def generate_option_parser():
-    # TODO: support module option
-    usage = "usage: %prog [options] TODO Description Here :]"
-    parser = optparse.OptionParser(usage=usage, prog="get_dyn_types")
+    # TODO: support module option (not implemented yet)
+    usage = "usage: %prog [options]"
+    parser = optparse.OptionParser(usage=usage, prog=FILE_NAME)
     parser.add_option("-m", "--module",
                       action="store",
                       default=None,
                       dest="module",
-                      help="This is a placeholder option to show you how to use options with strings")
+                      help="Module name to set breakpoints")
     return parser
     
